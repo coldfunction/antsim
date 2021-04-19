@@ -8,7 +8,8 @@
 
 #define _clear() printf("\033[H\033[J")
 #define _disable_cursor() printf("\033[?25l")
-#define _set_XY(x,y,s) printf("\033[%d;%dH%s", (y), (x), (s)); 
+#define _gotoXY(x,y) printf("\033[%d;%dH", (y), (x))
+#define _set_XY(x,y,s) printf("\033[%d;%dH%s", (y), (x), (s)) 
 #define INIT_X 2
 #define INIT_Y 3
 
@@ -20,6 +21,9 @@
 #define BORDER_CORNER_LD_SYMBOL "╚"
 #define BORDER_CORNER_RD_SYMBOL "╝"
 #define ANT_SYMBOL "O"
+#define DOODLEBUG_SYMBOL "X"
+
+int global_dc = 0;
 
 using namespace std;
 
@@ -70,7 +74,17 @@ class Empty : public Matter {
 class Organism : public Matter {
     public:
         Organism(int x, int y, string shape) : Matter(x, y, shape, false) {}
-        Organism(string shape) : Matter(shape, false) {}
+        Organism(string shape) : Matter(shape, false) {
+            Predation[EMPTY_SYMBOL] = true;
+        }
+        
+        //Organism(string shape, string predation) : 
+        //Matter(shape, false), Predation[predation](true) {}
+
+
+
+//            Predation[EMPTY_SYMBOL] = true;
+ //       }
 
         bool canEat(string eat) {
             return this->Predation[eat];
@@ -95,11 +109,17 @@ class Organism : public Matter {
 class Ant : public Organism {
     public:
         using Organism::Organism;
-        Ant() : Organism(ANT_SYMBOL) {
-            Predation[EMPTY_SYMBOL] = true;
-        }
+        Ant() : Organism(ANT_SYMBOL) {}
+
  };
 
+class Doodlebug : public Organism {
+    public:
+        using Organism::Organism;
+        Doodlebug() : Organism(DOODLEBUG_SYMBOL) {
+            Predation[ANT_SYMBOL] = true;
+        }
+};
 
 class Border : public Matter {
     public:
@@ -166,9 +186,16 @@ class Space {
                     display(*matter[i*width+j]);
                 }
             }
+            _gotoXY(width+3, height+4);
         }
 
         void display(Matter &matter) {
+           /* if(matter.get_shape() == "O") {
+                global_dc++;
+                //cout << matter.get_shape() << " X: "<< matter.get_posX() << "Y: "<< matter.get_posY() << " count:"<< global_dc << endl;
+                _set_XY(matter.get_posX(), matter.get_posY(), matter.get_shape().c_str());
+                fflush(stdout); 
+            }*/
             _set_XY(matter.get_posX(), matter.get_posY(), matter.get_shape().c_str());
             fflush(stdout); 
         }
@@ -176,7 +203,7 @@ class Space {
         //default is random
         template <typename MATTER>
         void gen_matter(MATTER matter, int number) {
-            //ofstream out("info.txt");
+            ofstream out("info.txt");
 
             for(int i = 0; i < number; i++) {
                 //int pos = i+303;
@@ -185,10 +212,10 @@ class Space {
                 do {
                     pos = get_random_num(0, width*height-1);
                 } while(!matter[i].eat(&(this->matter[pos])));
-                //out << this->matter[pos]->get_shape() << "X: "<< this->matter[pos]->get_posX() << "Y: "<< this->matter[pos]->get_posY() << endl;
+                out << this->matter[pos]->get_shape() << "X: "<< this->matter[pos]->get_posX() << "Y: "<< this->matter[pos]->get_posY() << endl;
 
             }
-            //out.close();
+            out.close();
         }
 
     private:
@@ -200,16 +227,20 @@ class Space {
 
 int main() {
     //Space space(300,300);
-    Space space(30,20);
+    Space space(120,40);
+    Doodlebug *doodlebug = new Doodlebug[300];
+
     Ant *ant = new Ant[300];
     //space.gen_matter(ant, 300);
+    space.gen_matter(doodlebug, 10);
     space.gen_matter(ant, 10);
 
     space.run();
 
 
     cout << "delete ant" << endl;
-        delete [] ant;
+    delete [] ant;
+    delete [] doodlebug;
 
 
     return 0;
