@@ -1,7 +1,10 @@
-# include <iostream> 
+#include <iostream>
+#include <fstream> 
+#include <random>
+#include <map>
+
 #include <stdio.h>
 #include <unistd.h>
-#include <map>
 
 #define _clear() printf("\033[H\033[J")
 #define _disable_cursor() printf("\033[?25l")
@@ -19,6 +22,14 @@
 #define ANT_SYMBOL "O"
 
 using namespace std;
+
+int get_random_num(int a, int b) {
+    std::random_device dev;
+    std::mt19937 rng(dev());
+    std::uniform_int_distribution<std::mt19937::result_type> dist6(a,b); // distribution in range [a, b]
+    return dist6(rng);
+}
+
 
 class Matter {
     public: 
@@ -102,6 +113,7 @@ class Space {
 
         Space(int width, int height) : width(width+2), height(height+2) {
             int total = this->width * this->height;
+            cout << "cocotion test total =" << total << endl;
             matter = new Matter*[total];
 // ╔════X═════╗
 // Y          ║
@@ -149,12 +161,11 @@ class Space {
         void run() {
             _clear();
             _disable_cursor();
-            for(int i = 0; i < width; i++) {
-                for(int j = 0; j < height; j++) {
+            for(int i = 0; i < height; i++) {
+                for(int j = 0; j < width; j++) {
                     display(*matter[i*width+j]);
                 }
             }
-
         }
 
         void display(Matter &matter) {
@@ -165,13 +176,19 @@ class Space {
         //default is random
         template <typename MATTER>
         void gen_matter(MATTER matter, int number) {
-            //int n = get_random_num(0, number);
-            for(int i = 0; i < number; i++) {
-                int pos = i+303;
-                
-                matter[i].eat(&(this->matter[pos]));
-            }
+            //ofstream out("info.txt");
 
+            for(int i = 0; i < number; i++) {
+                //int pos = i+303;
+                //if eat sucessfully return true 
+                int pos;
+                do {
+                    pos = get_random_num(0, width*height-1);
+                } while(!matter[i].eat(&(this->matter[pos])));
+                //out << this->matter[pos]->get_shape() << "X: "<< this->matter[pos]->get_posX() << "Y: "<< this->matter[pos]->get_posY() << endl;
+
+            }
+            //out.close();
         }
 
     private:
@@ -182,20 +199,17 @@ class Space {
 
 
 int main() {
-    Space space(300,300);
+    //Space space(300,300);
+    Space space(30,20);
     Ant *ant = new Ant[300];
-    space.gen_matter(ant, 1);
+    //space.gen_matter(ant, 300);
+    space.gen_matter(ant, 10);
+
+    space.run();
 
 
-    //space.run();
-
-    //cout << ant[1].get_shape() << endl;
-    //cout << ant[100].get_shape() << endl;
-
-    //if(ant) {
-        cout << "delete ant" << endl;
+    cout << "delete ant" << endl;
         delete [] ant;
-   // } 
 
 
     return 0;
