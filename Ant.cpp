@@ -93,7 +93,9 @@ class Border : public Matter {
 
 class Organism : public Matter {
     public:
-        Organism(int x, int y, string shape) : Matter(x, y, shape, false) {}
+        Organism(int x, int y, string shape) : Matter(x, y, shape, false) {
+            Predation.push_back(EMPTY_SYMBOL);
+        }
         Organism(string shape) : Matter(shape, false) {
             //Predation[EMPTY_SYMBOL] = true;
             Predation.push_back(EMPTY_SYMBOL);
@@ -113,11 +115,20 @@ class Organism : public Matter {
         }
         bool eat(Matter **matter) {
             //if this can eat
+            //if(this->get_shape()=="X" && (*matter)->get_shape() == "O") {
+                //cout << "ready to eat " << endl;
+                //cout << "source = " << this->get_posX() << " : " << this->get_posY() << endl;
+                //cout << "des = " << (*matter)->get_posX() << " : " << (*matter)->get_posY() << endl;
+            //}
             if(canEat((*matter)->get_shape())) { 
                 this->set_posX((*matter)->get_posX());
                 this->set_posY((*matter)->get_posY());
                 delete *matter;
                 *matter = this;
+                
+                //cout << "after eat source = " << this->get_posX() << " : " << this->get_posY() << endl;
+
+             //   cout << "after eat" << endl;
                 return true;
             } else {
                 //TODO: if equal, depend on somewhat..
@@ -193,9 +204,9 @@ class Space {
             
             int total = width * height;
             for(int i = 0; i < total; i++) {
-                if(matter[i]->isInorganic()) {
+                //if(matter[i]->isInorganic()) {
                     delete matter[i];
-                }
+               // }
             }
             delete [] matter;
             
@@ -289,19 +300,28 @@ class Space {
         //default is random
         template <typename MATTER>
         void gen_matter(MATTER matter, int number) {
-            ofstream out("info.txt");
+            //ofstream out("info.txt");
 
             for(int i = 0; i < number; i++) {
                 //int pos = i+303;
                 //if eat sucessfully return true 
                 int pos;
+  //              do {
+ //                   pos = get_random_num(0, width*height-1);
+//                } while(!matter[i].eat(&(this->matter[pos])));
                 do {
                     pos = get_random_num(0, width*height-1);
-                } while(!matter[i].eat(&(this->matter[pos])));
-                out << this->matter[pos]->get_shape() << "X: "<< this->matter[pos]->get_posX() << "Y: "<< this->matter[pos]->get_posY() << endl;
-                out << this->matter[pos]->isInorganic();
+                } while(this->matter[pos]->get_shape() != EMPTY_SYMBOL);
+                //TODO: update x, y  by function
+                int x = this->matter[pos]->get_posX();
+                int y = this->matter[pos]->get_posY();
+                delete this->matter[pos];
+                this->matter[pos] = new MATTER(x,y);
+
+                //out << this->matter[pos]->get_shape() << "X: "<< this->matter[pos]->get_posX() << "Y: "<< this->matter[pos]->get_posY() << endl;
+                //out << this->matter[pos]->isInorganic();
             }
-            out.close();
+            //out.close();
         }
 
     private:
@@ -314,6 +334,7 @@ class Ant : public Organism {
     public:
         using Organism::Organism;
         Ant() : Organism(ANT_SYMBOL) {}
+        Ant(int x, int y) : Organism(x, y, ANT_SYMBOL) {}
         int move(Space *space) {
             int action = get_random_num(Action::RIGHT, Action::DOWN);
             return space->updatePos(this, action); 
@@ -328,6 +349,9 @@ class Doodlebug : public Organism {
             //Predation[ANT_SYMBOL] = true;
             Predation.push_back(ANT_SYMBOL);
         }
+        Doodlebug(int x, int y) : Organism(x, y, DOODLEBUG_SYMBOL) {
+            Predation.push_back(ANT_SYMBOL);
+        }
         int move(Space *space) {
             int action = get_random_num(Action::RIGHT, Action::DOWN);
             return space->updatePos(this, action); 
@@ -339,11 +363,14 @@ class Doodlebug : public Organism {
 int main() {
     //Space space(300,300);
     Space space(120,40);
-    Doodlebug *doodlebug = new Doodlebug[300];
+    //Doodlebug *doodlebug = new Doodlebug[300];
+    Doodlebug doodlebug;
 
-    Ant *ant = new Ant[300];
+    //Ant *ant = new Ant[300];
+    Ant ant;
     //space.gen_matter(ant, 300);
-    space.gen_matter(doodlebug, 10);
+
+    //space.gen_matter(doodlebug, 10);
     space.gen_matter(ant, 10);
 
 
@@ -351,8 +378,8 @@ int main() {
 
 
     cout << "delete ant" << endl;
-    delete [] ant;
-    delete [] doodlebug;
+   // delete [] ant;
+//    delete [] doodlebug;
 
 
     return 0;
