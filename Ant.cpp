@@ -217,8 +217,8 @@ class Space {
         int updatePos(Matter *matter, int action) {
             int X = matter->get_posX();
             int Y = matter->get_posY();
-            cout << "action = " << action << endl;
-            cout << "before X, Y = " << X <<"," << Y << endl;
+            //cout << "action = " << action << endl;
+            //cout << "before X, Y = " << X <<"," << Y << endl;
             switch(action) {
                 case Action::RIGHT:
                     ++X; 
@@ -232,8 +232,8 @@ class Space {
                 default:    
                     --Y;
             }
-            cout << "after X, Y = " << X <<"," << Y << endl;
-            cout << "update pos = " << Y*width+X << endl; 
+            //cout << "after X, Y = " << X <<"," << Y << endl;
+            //cout << "update pos = " << Y*width+X << endl; 
             return Y*width+X;
         }
 
@@ -242,6 +242,8 @@ class Space {
                 int y = src/width;
                 int x = src%width;
                 this->matter[src] = new Border(x, y, EMPTY_SYMBOL);
+                display(*(this->matter[src]));
+                display(*(this->matter[des]));
                 return true;
             }
             return false;
@@ -252,17 +254,25 @@ class Space {
             for(int i = 0; i < num; i++) { //if not ig
                 if(!(this->matter[i]->isInorganic()) && !(this->matter[i]->isActived())) {
                     int newPos = this->matter[i]->move(this);
-                    cout << "old, new = " << i << " : " << newPos << endl;
-                    cout << "shape = " << this->matter[i]->get_shape() << endl;
+                    //cout << "old, new = " << i << " : " << newPos << endl;
+                    //cout << "shape = " << this->matter[i]->get_shape() << endl;
                     if(try_jump(i, newPos))
                         this->matter[newPos]->actived();
+                }
+            }
+            for(int i = 0; i < num; i++) { //if not ig
+                if(!(this->matter[i]->isInorganic()) && (this->matter[i]->isActived())) {
+                    this->matter[i]->reset_actived();
                 }
             }
         }
 
         void run() {
             initMap();
-            organism_move();
+            for(int i = 0; i < 1000; i++) {
+                organism_move();
+                sleep(1);
+            }
         }
 
         void display(Matter &matter) {
@@ -319,7 +329,8 @@ class Doodlebug : public Organism {
             Predation.push_back(ANT_SYMBOL);
         }
         int move(Space *space) {
-            return 0; 
+            int action = get_random_num(Action::RIGHT, Action::DOWN);
+            return space->updatePos(this, action); 
         }
 };
 
@@ -332,7 +343,7 @@ int main() {
 
     Ant *ant = new Ant[300];
     //space.gen_matter(ant, 300);
-    //space.gen_matter(doodlebug, 10);
+    space.gen_matter(doodlebug, 10);
     space.gen_matter(ant, 10);
 
 
