@@ -74,6 +74,7 @@ class Matter {
         virtual int move(Space *matter) {return -1;}
         virtual Matter* childbirth(int x, int y) {return nullptr;}
         virtual void reproduce(Space *space) {}
+        virtual int get_newPos(Space *space, int oldPos, int wantGo) {return -1;}
     
     private: 
         string shape;
@@ -266,6 +267,9 @@ class Space {
             initMap();
             for(int i = 0; i < 1000; i++) {
                 organism_move();
+                
+                _gotoXY(width+3, height+4);
+                //fgetc(stdin);
                 sleep(1);
             }
         }
@@ -338,13 +342,34 @@ class Ant : public Organism {
             return life_cycle;
         }
         Matter* childbirth(int x, int y) {return new Ant(x,y);}
-        void reproduce(Space *space) {
+        int get_newPos(Space *space, int oldPos, string wantGo) {
             int det[4] = {-1}; //U, D, L, R
+            int newPos;
+            do {
+                newPos = move(space);
+                int dpos = oldPos - newPos;
+                if(det[0]+det[1]+det[2]+det[3] == 0) {
+                    return -1;
+                    //break;
+                } else {
+                    if(dpos == 1) det[0] = 0;
+                    else if(dpos == -1) det[1] = 0;
+                    else if(dpos > 1) det[2] = 0;
+                    else det[3] = 0;
+                }
+            } while ((space->get_matter())[newPos]->get_shape() != wantGo);
+            return newPos;
+        }
+
+        void reproduce(Space *space) {
             int width = space->get_width();
             int x = this->get_posX();
             int y = this->get_posY();
             int oldPos = y*width+x;
-
+            int newPos = get_newPos(space, oldPos, EMPTY_SYMBOL);
+            if(newPos < 0) return;
+            /*
+            int det[4] = {-1}; //U, D, L, R
             int newPos;
             do {
                 newPos = move(space);
@@ -359,6 +384,9 @@ class Ant : public Organism {
                     else det[3] = 0;
                 }
             } while ((space->get_matter())[newPos]->get_shape() != EMPTY_SYMBOL);
+*/
+
+
             //newPos is ok, ready to born
             //TODO: take get_matter by temp pointer
             x = (space->get_matter())[newPos]->get_posX();
@@ -384,6 +412,9 @@ class Doodlebug : public Organism {
             reproduce_cycle = DOODLEBUG_REPRODUCE_CYCLE;
         }
         int move(Space *space) {
+            //if food around me...
+
+            //if no food around
             int action = get_random_num(Action::RIGHT, Action::DOWN);
             return space->updatePos(this, action); 
         }
@@ -411,7 +442,7 @@ int main() {
     space.run();
 
 
-    cout << "delete ant" << endl;
+    cout << "delete all" << endl;
    // delete [] ant;
 //    delete [] doodlebug;
 
