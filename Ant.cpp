@@ -60,7 +60,7 @@ class Matter {
         string get_shape() {return shape;}
         bool isInorganic() {return inorganic;}
         virtual bool isActived() {return moved;}
-        virtual void actived() {moved = true;}
+        virtual int actived() {moved = true; return -1;}
         virtual void reset_actived() {moved = false;}
 
         void set_posX(int x) {pos_X = x;}
@@ -70,6 +70,7 @@ class Matter {
         virtual bool canEat(string eat) {return false;}
         virtual bool eat(Matter **matter) {return false;}
         virtual int move(Space *matter) {return -1;}
+        virtual Matter* childbirth(int x, int y) {return nullptr;}
         virtual void reproduce() {}
     
     private: 
@@ -232,6 +233,10 @@ class Space {
             return false;
         }
 
+        void try_reproduce(int pos) {
+
+
+        }
 
         void organism_move() {
             int num = width*height;
@@ -241,8 +246,10 @@ class Space {
                     //cout << "old, new = " << i << " : " << newPos << endl;
                     //cout << "shape = " << this->matter[i]->get_shape() << endl;
                     if(try_jump(i, newPos)) {
-                        this->matter[newPos]->actived();
-                        //try_reproduce(i);
+                        int life_cycle = (this->matter[newPos]->actived());
+                        if(life_cycle == 0) {
+                            try_reproduce(newPos);
+                        }
                     }
                 }
             }
@@ -273,8 +280,9 @@ class Space {
         }
 
         //default is random
-        template <typename MATTER>
-        void gen_matter(MATTER matter, int number) {
+        //template <typename MATTER>
+        //void gen_matter(MATTER matter, int number) {
+        void gen_matter(Matter *matter, int number) {
             //ofstream out("info.txt");
 
             for(int i = 0; i < number; i++) {
@@ -291,7 +299,8 @@ class Space {
                 int x = this->matter[pos]->get_posX();
                 int y = this->matter[pos]->get_posY();
                 delete this->matter[pos];
-                this->matter[pos] = new MATTER(x,y);
+                //this->matter[pos] = new MATTER(x,y);
+                this->matter[pos] = matter->childbirth(x,y);
 
                 //out << this->matter[pos]->get_shape() << "X: "<< this->matter[pos]->get_posX() << "Y: "<< this->matter[pos]->get_posY() << endl;
                 //out << this->matter[pos]->isInorganic();
@@ -320,9 +329,12 @@ class Ant : public Organism {
             int action = get_random_num(Action::RIGHT, Action::DOWN);
             return space->updatePos(this, action); 
         }
-        void actived() {
+        int actived() {
             moved = true;
+            life_cycle = (life_cycle+1)%reproduce_cycle;
+            return life_cycle;
         }
+        Matter* childbirth(int x, int y) {return new Ant(x,y);}
         void reproduce() {
 
 
@@ -346,6 +358,7 @@ class Doodlebug : public Organism {
             int action = get_random_num(Action::RIGHT, Action::DOWN);
             return space->updatePos(this, action); 
         }
+        Matter* childbirth(int x, int y) {return new Doodlebug(x,y);}
         void reproduce() {}
 };
 
@@ -362,8 +375,8 @@ int main() {
     Ant ant;
     //space.gen_matter(ant, 300);
 
-    space.gen_matter(doodlebug, 10);
-    space.gen_matter(ant, 10);
+    space.gen_matter(&doodlebug, 10);
+    space.gen_matter(&ant, 10);
 
 
     space.run();
