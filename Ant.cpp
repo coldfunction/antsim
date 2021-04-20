@@ -163,8 +163,8 @@ class Space {
                     display(*matter[i*width+j]);
                 }
             }
-            _gotoXY(width+3, height+4);
-
+            //_gotoXY(width+3, height+4);
+            fflush(stdout); 
 
         }
 
@@ -251,6 +251,7 @@ class Space {
                     this->matter[i]->reset_actived();
                 }
             }
+            fflush(stdout); 
         }
 
         void run() {
@@ -273,7 +274,7 @@ class Space {
                 fflush(stdout); 
             }*/
             _set_XY(matter.get_posX()+INIT_X, matter.get_posY()+INIT_Y, matter.get_shape().c_str());
-            fflush(stdout); 
+            //fflush(stdout); 
         }
 
         //default is random
