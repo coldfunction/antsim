@@ -20,6 +20,7 @@
 #define BORDER_CORNER_RU_SYMBOL "╗"
 #define BORDER_CORNER_LD_SYMBOL "╚"
 #define BORDER_CORNER_RD_SYMBOL "╝"
+#define UNIVERSAL_SYMBOL "氣"
 #define ANT_SYMBOL "O"
 #define DOODLEBUG_SYMBOL "X"
 
@@ -76,7 +77,7 @@ class Matter {
         virtual void reproduce(Space *space) {}
         virtual void rebirth(Space *space, string wantGo) {}
         virtual int get_newPos(Space *space, int oldPos, string wantGo) {return -1;}
-
+        virtual int go_where(Space *space, int oldPos) {return -1;}
     
     private: 
         string shape;
@@ -204,8 +205,13 @@ class Space {
         void organism_move() {
             int num = width*height;
             for(int i = 0; i < num; i++) { //if not ig
+
+
                 if(!(this->matter[i]->isInorganic()) && !(this->matter[i]->isActived())) {
-                    int newPos = this->matter[i]->move(this);
+                    //int newPos = this->matter[i]->move(this);
+                    //int newPos = this->matter[i]->get_newPos(this, i, UNIVERSAL_SYMBOL);
+                    int newPos = this->matter[i]->go_where(this, i);
+
                     //cout << "old, new = " << i << " : " << newPos << endl;
                     //cout << "shape = " << this->matter[i]->get_shape() << endl;
                     if(try_jump(i, newPos)) {
@@ -215,6 +221,8 @@ class Space {
                         }
                     }
                 }
+
+
             }
             for(int i = 0; i < num; i++) { //if not ig
                 if(!(this->matter[i]->isInorganic()) && (this->matter[i]->isActived())) {
@@ -320,6 +328,10 @@ class Organism : public Matter {
 
          
         int get_newPos(Space *space, int oldPos, string wantGo) {
+            if(wantGo == UNIVERSAL_SYMBOL) {
+                return move(space);
+            }
+            
             int det[4] = {-1}; //U, D, L, R
             int newPos;
             do {
@@ -398,7 +410,10 @@ class Ant : public Organism {
             return life_cycle;
         }*/
         Matter* childbirth(int x, int y) {return new Ant(x,y);}
-   
+        int go_where(Space *space, int oldPos) {
+            return get_newPos(space, oldPos, UNIVERSAL_SYMBOL);
+        }
+
         //void reproduce(Space *space) {
         //    rebirth(space, EMPTY_SYMBOL);
         //}
@@ -426,6 +441,9 @@ class Doodlebug : public Organism {
         }
         Matter* childbirth(int x, int y) {return new Doodlebug(x,y);}
         //void reproduce(Space *space) {}
+        int go_where(Space *space, int oldPos) {
+            return get_newPos(space, oldPos, UNIVERSAL_SYMBOL);
+        }
 };
 
 
@@ -441,7 +459,7 @@ int main() {
     Ant ant;
     //space.gen_matter(ant, 300);
 
-    space.gen_matter(&doodlebug, 10);
+    space.gen_matter(&doodlebug, 1);
     space.gen_matter(&ant, 10);
 
 
