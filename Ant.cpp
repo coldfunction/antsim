@@ -23,6 +23,8 @@
 #define ANT_SYMBOL "O"
 #define DOODLEBUG_SYMBOL "X"
 
+#define ANT_REPRODUCE_CYCLE 3
+#define DOODLEBUG_REPRODUCE_CYCLE 8
 
 class Space;
 
@@ -57,17 +59,18 @@ class Matter {
         int get_posY() {return pos_Y;}
         string get_shape() {return shape;}
         bool isInorganic() {return inorganic;}
-        bool isActived() {return moved;}
-        void actived() {moved = true;}
-        void reset_actived() {moved = false;}
+        virtual bool isActived() {return moved;}
+        virtual void actived() {moved = true;}
+        virtual void reset_actived() {moved = false;}
 
         void set_posX(int x) {pos_X = x;}
         void set_posY(int y) {pos_Y = y;}
         void set_shape(string s) {shape = s;}
 
-        virtual bool canEat(string eat) = 0;
-        virtual bool eat(Matter **matter) = 0;
-        virtual int move(Space *space) = 0;
+        virtual bool canEat(string eat) {return false;}
+        virtual bool eat(Matter **matter) {return false;}
+        virtual int move(Space *matter) {return -1;}
+        virtual void reproduce() {}
     
     private: 
         string shape;
@@ -86,9 +89,6 @@ class Empty : public Matter {
 class Border : public Matter {
     public:
         using Matter::Matter; 
-        bool canEat(string eat) {return false;}
-        bool eat(Matter **matter) {return false;}
-        int move(Space *matter) {return -1;}
 };
 
 class Organism : public Matter {
@@ -100,17 +100,8 @@ class Organism : public Matter {
             //Predation[EMPTY_SYMBOL] = true;
             Predation.push_back(EMPTY_SYMBOL);
         }
-     //   virtual void move() = 0;
-        //Organism(string shape, string predation) : 
-        //Matter(shape, false), Predation[predation](true) {}
-
-
-
-//            Predation[EMPTY_SYMBOL] = true;
- //       }
 
         bool canEat(string eat) {
-            //return (find(Predation.begin(), Predation.end(), eat) != Predation.end());
             return (find(Predation.begin(), Predation.end(), eat) != Predation.end());
         }
         bool eat(Matter **matter) {
@@ -135,31 +126,11 @@ class Organism : public Matter {
                 return false;
             }
         }
-        //int move() {return -1;}
-
-        /*
-        int updatePos(Matter *matter, int action) {
-            int X = matter->get_posX();
-            int Y = matter->get_posY();
-            switch(action) {
-                case Action::RIGHT:
-                    ++X; 
-                    break;
-                case Action::LEFT:
-                    --X;
-                    break;
-                case Action::UP:
-                    ++Y;
-                    break;
-                default:    
-                    --Y;
-            }
-            return Y*width+X;
-        }
-*/
-        int life;
-        //map<string, bool> Predation;
+        
+    protected:
+        int reproduce_cycle;
         vector<string> Predation;
+        int life_cycle = 0;
 };
 
 class Space { 
@@ -260,6 +231,7 @@ class Space {
             return false;
         }
 
+
         void organism_move() {
             int num = width*height;
             for(int i = 0; i < num; i++) { //if not ig
@@ -267,8 +239,10 @@ class Space {
                     int newPos = this->matter[i]->move(this);
                     //cout << "old, new = " << i << " : " << newPos << endl;
                     //cout << "shape = " << this->matter[i]->get_shape() << endl;
-                    if(try_jump(i, newPos))
+                    if(try_jump(i, newPos)) {
                         this->matter[newPos]->actived();
+                        //try_reproduce(i);
+                    }
                 }
             }
             for(int i = 0; i < num; i++) { //if not ig
@@ -333,36 +307,50 @@ class Space {
 class Ant : public Organism {
     public:
         using Organism::Organism;
-        Ant() : Organism(ANT_SYMBOL) {}
-        Ant(int x, int y) : Organism(x, y, ANT_SYMBOL) {}
+        Ant() : 
+        Organism(ANT_SYMBOL) {
+            reproduce_cycle = ANT_REPRODUCE_CYCLE;
+        }
+        Ant(int x, int y) : 
+        Organism(x, y, ANT_SYMBOL) {
+            reproduce_cycle = ANT_REPRODUCE_CYCLE;
+        }
         int move(Space *space) {
             int action = get_random_num(Action::RIGHT, Action::DOWN);
             return space->updatePos(this, action); 
         }
+        void reproduce() {
 
+
+        }
  };
 
 class Doodlebug : public Organism {
     public:
         using Organism::Organism;
-        Doodlebug() : Organism(DOODLEBUG_SYMBOL) {
-            //Predation[ANT_SYMBOL] = true;
+        Doodlebug() : 
+        Organism(DOODLEBUG_SYMBOL) {
             Predation.push_back(ANT_SYMBOL);
+            reproduce_cycle = DOODLEBUG_REPRODUCE_CYCLE;
         }
-        Doodlebug(int x, int y) : Organism(x, y, DOODLEBUG_SYMBOL) {
+        Doodlebug(int x, int y) : 
+        Organism(x, y, DOODLEBUG_SYMBOL) {
             Predation.push_back(ANT_SYMBOL);
+            reproduce_cycle = DOODLEBUG_REPRODUCE_CYCLE;
         }
         int move(Space *space) {
             int action = get_random_num(Action::RIGHT, Action::DOWN);
             return space->updatePos(this, action); 
         }
+        void reproduce() {}
 };
 
 
 
 int main() {
     //Space space(300,300);
-    Space space(120,40);
+    //Space space(120,20); //ok
+    Space space(20,20); //ok
     //Doodlebug *doodlebug = new Doodlebug[300];
     Doodlebug doodlebug;
 
@@ -370,7 +358,7 @@ int main() {
     Ant ant;
     //space.gen_matter(ant, 300);
 
-    //space.gen_matter(doodlebug, 10);
+    space.gen_matter(doodlebug, 10);
     space.gen_matter(ant, 10);
 
 
