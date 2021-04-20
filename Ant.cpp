@@ -80,7 +80,8 @@ class Matter {
         virtual void rebirth(Space *space, string wantGo) {}
         virtual int get_newPos(Space *space, int oldPos, string wantGo) {return -1;}
         virtual int go_where(Space *space, int oldPos) {return -1;}
-        virtual void strvation() {return;}
+        virtual bool strvation() {return false;}
+        virtual void refillHP() {return;}
 
     private: 
         string shape;
@@ -213,6 +214,7 @@ class Space {
                 if(!(this->matter[i]->isInorganic()) && !(this->matter[i]->isActived())) {
                     //int newPos = this->matter[i]->move(this);
                     //int newPos = this->matter[i]->get_newPos(this, i, UNIVERSAL_SYMBOL);
+                    // Doodlebug will try to eat. If fail to eat, HP--;
                     int newPos = this->matter[i]->go_where(this, i);
 
                     //cout << "old, new = " << i << " : " << newPos << endl;
@@ -228,19 +230,29 @@ class Space {
                     // try_jump: deal how to eat
                     if(try_jump(i, newPos)) {
                         update = newPos;
-                        
-                        //life_cycle = (this->matter[newPos]->actived());
-                        //if(life_cycle == 0) {
-                        //    try_reproduce(newPos);
-                        //}
                     } else {
-                        //life_cycle = (this->matter[i]->actived());
                         update = i;
                     }
                     int life_cycle = (this->matter[update]->actived());
+
+                    // Born first 
                     if(life_cycle == 0) {
                         try_reproduce(update);
                     }
+
+
+                        // Die after born
+                    if(this->matter[update]->strvation()) {
+                        int x = this->matter[update]->get_posX();
+                        int y = this->matter[update]->get_posY();
+                        delete this->matter[update];
+                        this->matter[update] = new Border(x, y, EMPTY_SYMBOL);
+                        display(*(this->matter[update]));
+                    }
+
+                    //if(life_cycle == 0) {
+                     //   try_reproduce(update);
+                    //}
 
                 }
 
@@ -472,10 +484,25 @@ class Doodlebug : public Organism {
         int go_where(Space *space, int oldPos) {
             int pos = get_newPos(space, oldPos, ANT_SYMBOL);
             if(pos == -1) {
+                //fail to eat
+                --HP;
                return get_newPos(space, oldPos, UNIVERSAL_SYMBOL);
             } else {
+                refillHP();
                 return pos;
             }
+        }
+        void refillHP() {HP = DOODLEBUG_HP;}
+        bool strvation() {
+            //--HP;
+            //int x = this->get_posX();            
+            //int y = this->get_posY();            
+            //delete this;
+            //this = new Border(x, y, EMPTY_SYMBOL);
+
+            //return true;
+            //return !(--HP);
+            return !HP;
         }
 };
 
@@ -483,8 +510,8 @@ class Doodlebug : public Organism {
 
 int main() {
     //Space space(300,300);
-    Space space(120,20); //ok
-    //Space space(20,20); //ok
+    //Space space(120,20); //ok
+    Space space(20,20); //ok
     //Space space(2,2); //ok
     //Doodlebug *doodlebug = new Doodlebug[300];
     Doodlebug doodlebug;
@@ -493,8 +520,8 @@ int main() {
     Ant ant;
     //space.gen_matter(ant, 300);
 
-    space.gen_matter(&doodlebug, 1);
-    space.gen_matter(&ant, 1);
+    space.gen_matter(&doodlebug, 100);
+    space.gen_matter(&ant, 80);
 
 
     space.run();
