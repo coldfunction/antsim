@@ -77,6 +77,7 @@ class Matter {
         int pos_X;
         int pos_Y;
         bool inorganic = true;
+    protected:
         bool moved = false;
 };
 /*
@@ -318,6 +319,9 @@ class Ant : public Organism {
         int move(Space *space) {
             int action = get_random_num(Action::RIGHT, Action::DOWN);
             return space->updatePos(this, action); 
+        }
+        void actived() {
+            moved = true;
         }
         void reproduce() {
 
