@@ -74,7 +74,9 @@ class Matter {
         virtual int move(Space *matter) {return -1;}
         virtual Matter* childbirth(int x, int y) {return nullptr;}
         virtual void reproduce(Space *space) {}
-        virtual int get_newPos(Space *space, int oldPos, int wantGo) {return -1;}
+        virtual void rebirth(Space *space, string wantGo) {}
+        virtual int get_newPos(Space *space, int oldPos, string wantGo) {return -1;}
+
     
     private: 
         string shape;
@@ -94,48 +96,6 @@ class Empty : public Matter {
 class Border : public Matter {
     public:
         using Matter::Matter; 
-};
-
-class Organism : public Matter {
-    public:
-        Organism(int x, int y, string shape) : Matter(x, y, shape, false) {
-            Predation.push_back(EMPTY_SYMBOL);
-        }
-        Organism(string shape) : Matter(shape, false) {
-            //Predation[EMPTY_SYMBOL] = true;
-            Predation.push_back(EMPTY_SYMBOL);
-        }
-
-        bool canEat(string eat) {
-            return (find(Predation.begin(), Predation.end(), eat) != Predation.end());
-        }
-        bool eat(Matter **matter) {
-            //if this can eat
-            //if(this->get_shape()=="X" && (*matter)->get_shape() == "O") {
-                //cout << "ready to eat " << endl;
-                //cout << "source = " << this->get_posX() << " : " << this->get_posY() << endl;
-                //cout << "des = " << (*matter)->get_posX() << " : " << (*matter)->get_posY() << endl;
-            //}
-            if(canEat((*matter)->get_shape())) { 
-                this->set_posX((*matter)->get_posX());
-                this->set_posY((*matter)->get_posY());
-                delete *matter;
-                *matter = this;
-                
-                //cout << "after eat source = " << this->get_posX() << " : " << this->get_posY() << endl;
-
-             //   cout << "after eat" << endl;
-                return true;
-            } else {
-                //TODO: if equal, depend on somewhat..
-                return false;
-            }
-        }
-        
-    protected:
-        int reproduce_cycle;
-        vector<string> Predation;
-        int life_cycle = 0;
 };
 
 class Space { 
@@ -268,7 +228,7 @@ class Space {
             for(int i = 0; i < 1000; i++) {
                 organism_move();
                 
-                _gotoXY(width+3, height+4);
+                //_gotoXY(width+3, height+4);
                 //fgetc(stdin);
                 sleep(1);
             }
@@ -321,27 +281,44 @@ class Space {
         Matter **matter;
 }; 
 
-class Ant : public Organism {
+
+class Organism : public Matter {
     public:
-        using Organism::Organism;
-        Ant() : 
-        Organism(ANT_SYMBOL) {
-            reproduce_cycle = ANT_REPRODUCE_CYCLE;
+        Organism(int x, int y, string shape) : Matter(x, y, shape, false) {
+            Predation.push_back(EMPTY_SYMBOL);
         }
-        Ant(int x, int y) : 
-        Organism(x, y, ANT_SYMBOL) {
-            reproduce_cycle = ANT_REPRODUCE_CYCLE;
+        Organism(string shape) : Matter(shape, false) {
+            //Predation[EMPTY_SYMBOL] = true;
+            Predation.push_back(EMPTY_SYMBOL);
         }
-        int move(Space *space) {
-            int action = get_random_num(Action::RIGHT, Action::DOWN);
-            return space->updatePos(this, action); 
+
+        bool canEat(string eat) {
+            return (find(Predation.begin(), Predation.end(), eat) != Predation.end());
         }
-        int actived() {
-            moved = true;
-            life_cycle = (life_cycle+1)%reproduce_cycle;
-            return life_cycle;
+        bool eat(Matter **matter) {
+            //if this can eat
+            //if(this->get_shape()=="X" && (*matter)->get_shape() == "O") {
+                //cout << "ready to eat " << endl;
+                //cout << "source = " << this->get_posX() << " : " << this->get_posY() << endl;
+                //cout << "des = " << (*matter)->get_posX() << " : " << (*matter)->get_posY() << endl;
+            //}
+            if(canEat((*matter)->get_shape())) { 
+                this->set_posX((*matter)->get_posX());
+                this->set_posY((*matter)->get_posY());
+                delete *matter;
+                *matter = this;
+                
+                //cout << "after eat source = " << this->get_posX() << " : " << this->get_posY() << endl;
+
+             //   cout << "after eat" << endl;
+                return true;
+            } else {
+                //TODO: if equal, depend on somewhat..
+                return false;
+            }
         }
-        Matter* childbirth(int x, int y) {return new Ant(x,y);}
+
+         
         int get_newPos(Space *space, int oldPos, string wantGo) {
             int det[4] = {-1}; //U, D, L, R
             int newPos;
@@ -359,33 +336,14 @@ class Ant : public Organism {
                 }
             } while ((space->get_matter())[newPos]->get_shape() != wantGo);
             return newPos;
-        }
-
-        void reproduce(Space *space) {
+        } 
+        void rebirth(Space *space, string wantGo) {
             int width = space->get_width();
             int x = this->get_posX();
             int y = this->get_posY();
             int oldPos = y*width+x;
-            int newPos = get_newPos(space, oldPos, EMPTY_SYMBOL);
+            int newPos = get_newPos(space, oldPos, wantGo);
             if(newPos < 0) return;
-            /*
-            int det[4] = {-1}; //U, D, L, R
-            int newPos;
-            do {
-                newPos = move(space);
-                int dpos = oldPos - newPos;
-                if(det[0]+det[1]+det[2]+det[3] == 0) {
-                    return;
-                    //break;
-                } else {
-                    if(dpos == 1) det[0] = 0;
-                    else if(dpos == -1) det[1] = 0;
-                    else if(dpos > 1) det[2] = 0;
-                    else det[3] = 0;
-                }
-            } while ((space->get_matter())[newPos]->get_shape() != EMPTY_SYMBOL);
-*/
-
 
             //newPos is ok, ready to born
             //TODO: take get_matter by temp pointer
@@ -395,7 +353,55 @@ class Ant : public Organism {
             (space->get_matter())[newPos] = childbirth(x, y);
             (space->get_matter())[newPos]->move_done();
             space->display(*((space->get_matter())[newPos]));
+        
         }
+        void reproduce(Space *space) {
+            rebirth(space, EMPTY_SYMBOL);
+        }
+
+        int actived() {
+            moved = true;
+            life_cycle = (life_cycle+1)%reproduce_cycle;
+            return life_cycle;
+        }
+
+        
+    protected:
+        int reproduce_cycle;
+        vector<string> Predation;
+        int life_cycle = 0;
+};
+
+
+
+
+
+
+class Ant : public Organism {
+    public:
+        using Organism::Organism;
+        Ant() : 
+        Organism(ANT_SYMBOL) {
+            reproduce_cycle = ANT_REPRODUCE_CYCLE;
+        }
+        Ant(int x, int y) : 
+        Organism(x, y, ANT_SYMBOL) {
+            reproduce_cycle = ANT_REPRODUCE_CYCLE;
+        }
+        int move(Space *space) {
+            int action = get_random_num(Action::RIGHT, Action::DOWN);
+            return space->updatePos(this, action); 
+        }/*
+        int actived() {
+            moved = true;
+            life_cycle = (life_cycle+1)%reproduce_cycle;
+            return life_cycle;
+        }*/
+        Matter* childbirth(int x, int y) {return new Ant(x,y);}
+   
+        //void reproduce(Space *space) {
+        //    rebirth(space, EMPTY_SYMBOL);
+        //}
  };
 
 class Doodlebug : public Organism {
@@ -419,7 +425,7 @@ class Doodlebug : public Organism {
             return space->updatePos(this, action); 
         }
         Matter* childbirth(int x, int y) {return new Doodlebug(x,y);}
-        void reproduce(Space *space) {}
+        //void reproduce(Space *space) {}
 };
 
 
