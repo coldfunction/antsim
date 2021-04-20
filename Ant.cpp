@@ -214,6 +214,7 @@ class Space {
 
                     //cout << "old, new = " << i << " : " << newPos << endl;
                     //cout << "shape = " << this->matter[i]->get_shape() << endl;
+                    // try_jump: deal how to eat
                     if(try_jump(i, newPos)) {
                         int life_cycle = (this->matter[newPos]->actived());
                         if(life_cycle == 0) {
@@ -234,10 +235,11 @@ class Space {
         void run() {
             initMap();
             for(int i = 0; i < 1000; i++) {
-                organism_move();
-                
                 //_gotoXY(width+3, height+4);
                 //fgetc(stdin);
+                
+                organism_move();
+                
                 sleep(1);
             }
         }
@@ -257,7 +259,7 @@ class Space {
         //template <typename MATTER>
         //void gen_matter(MATTER matter, int number) {
         void gen_matter(Matter *matter, int number) {
-            //ofstream out("info.txt");
+            ofstream out("info.txt");
 
             for(int i = 0; i < number; i++) {
                 //int pos = i+303;
@@ -276,10 +278,11 @@ class Space {
                 //this->matter[pos] = new MATTER(x,y);
                 this->matter[pos] = matter->childbirth(x,y);
 
-                //out << this->matter[pos]->get_shape() << "X: "<< this->matter[pos]->get_posX() << "Y: "<< this->matter[pos]->get_posY() << endl;
-                //out << this->matter[pos]->isInorganic();
+                out << this->matter[pos]->get_shape() << "X: "<< this->matter[pos]->get_posX() << "Y: "<< this->matter[pos]->get_posY() << endl;
+                out << this->matter[pos]->isInorganic();
+                //fgetc(stdin);
             }
-            //out.close();
+            out.close();
         }
         Matter **get_matter() {return matter;}
         int get_width() {return width;}
@@ -442,7 +445,12 @@ class Doodlebug : public Organism {
         Matter* childbirth(int x, int y) {return new Doodlebug(x,y);}
         //void reproduce(Space *space) {}
         int go_where(Space *space, int oldPos) {
-            return get_newPos(space, oldPos, UNIVERSAL_SYMBOL);
+            int pos = get_newPos(space, oldPos, ANT_SYMBOL);
+            if(pos == -1) {
+               return get_newPos(space, oldPos, UNIVERSAL_SYMBOL);
+            } else {
+                return pos;
+            }
         }
 };
 
@@ -450,8 +458,9 @@ class Doodlebug : public Organism {
 
 int main() {
     //Space space(300,300);
-    //Space space(120,20); //ok
-    Space space(20,20); //ok
+    Space space(120,20); //ok
+    //Space space(20,20); //ok
+    //Space space(2,2); //ok
     //Doodlebug *doodlebug = new Doodlebug[300];
     Doodlebug doodlebug;
 
@@ -460,7 +469,7 @@ int main() {
     //space.gen_matter(ant, 300);
 
     space.gen_matter(&doodlebug, 1);
-    space.gen_matter(&ant, 10);
+    space.gen_matter(&ant, 1);
 
 
     space.run();
