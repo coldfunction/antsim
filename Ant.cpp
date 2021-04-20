@@ -66,12 +66,14 @@ class Matter {
         void set_posX(int x) {pos_X = x;}
         void set_posY(int y) {pos_Y = y;}
         void set_shape(string s) {shape = s;}
+        
+        void move_done() {moved = true;}
 
         virtual bool canEat(string eat) {return false;}
         virtual bool eat(Matter **matter) {return false;}
         virtual int move(Space *matter) {return -1;}
         virtual Matter* childbirth(int x, int y) {return nullptr;}
-        virtual void reproduce() {}
+        virtual void reproduce(Space *space) {}
     
     private: 
         string shape;
@@ -234,7 +236,7 @@ class Space {
         }
 
         void try_reproduce(int pos) {
-
+            this->matter[pos]->reproduce(this);
 
         }
 
@@ -307,7 +309,8 @@ class Space {
             }
             //out.close();
         }
-
+        Matter **get_matter() {return matter;}
+        int get_width() {return width;}
     private:
         int width;
         int height;
@@ -335,9 +338,35 @@ class Ant : public Organism {
             return life_cycle;
         }
         Matter* childbirth(int x, int y) {return new Ant(x,y);}
-        void reproduce() {
+        void reproduce(Space *space) {
+            int det[4] = {-1}; //U, D, L, R
+            int width = space->get_width();
+            int x = this->get_posX();
+            int y = this->get_posY();
+            int oldPos = y*width+x;
 
-
+            int newPos;
+            do {
+                newPos = move(space);
+                int dpos = oldPos - newPos;
+                if(det[0]+det[1]+det[2]+det[3] == 0) {
+                    return;
+                    //break;
+                } else {
+                    if(dpos == 1) det[0] = 0;
+                    else if(dpos == -1) det[1] = 0;
+                    else if(dpos > 1) det[2] = 0;
+                    else det[3] = 0;
+                }
+            } while ((space->get_matter())[newPos]->get_shape() != EMPTY_SYMBOL);
+            //newPos is ok, ready to born
+            //TODO: take get_matter by temp pointer
+            x = (space->get_matter())[newPos]->get_posX();
+            y = (space->get_matter())[newPos]->get_posY();
+            delete (space->get_matter())[newPos]; //delete EMPTY_SYMBOL
+            (space->get_matter())[newPos] = childbirth(x, y);
+            (space->get_matter())[newPos]->move_done();
+            space->display(*((space->get_matter())[newPos]));
         }
  };
 
@@ -359,7 +388,7 @@ class Doodlebug : public Organism {
             return space->updatePos(this, action); 
         }
         Matter* childbirth(int x, int y) {return new Doodlebug(x,y);}
-        void reproduce() {}
+        void reproduce(Space *space) {}
 };
 
 
