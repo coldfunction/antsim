@@ -24,6 +24,8 @@
 #define ANT_SYMBOL "O"
 #define DOODLEBUG_SYMBOL "X"
 
+#define SPECIES_NUM 2
+
 #define ANT_REPRODUCE_CYCLE 3
 #define DOODLEBUG_REPRODUCE_CYCLE 8
 
@@ -208,55 +210,41 @@ class Space {
 
         void organism_move() {
             int num = width*height;
-            for(int i = 0; i < num; i++) { //if not ig
 
-
-                if(!(this->matter[i]->isInorganic()) && !(this->matter[i]->isActived())) {
-                    //int newPos = this->matter[i]->move(this);
-                    //int newPos = this->matter[i]->get_newPos(this, i, UNIVERSAL_SYMBOL);
-                    // Doodlebug will try to eat. If fail to eat, HP--;
-                    int newPos = this->matter[i]->go_where(this, i);
+            for(int order = 0; order < SPECIES_NUM; order++) {
+                string shape = runOrder[order];
+                for(int i = 0; i < num; i++) { //if not ig
+                    //TODO: Turn on/off non-sequential / sequential query
+                    //if(!(this->matter[i]->isInorganic()) && !(this->matter[i]->isActived())) {
+                    if((this->matter[i]->get_shape() == shape) && !(this->matter[i]->isActived())) {
+                        // Doodlebug will try to eat. If fail to eat, HP--;
+                        int newPos = this->matter[i]->go_where(this, i);
 
                     //cout << "old, new = " << i << " : " << newPos << endl;
                     //cout << "shape = " << this->matter[i]->get_shape() << endl;
+                        int update;
+                        // try_jump: deal how to eat
+                        if(try_jump(i, newPos)) {
+                            update = newPos;
+                        } else {
+                            update = i;
+                        }
+                        int life_cycle = (this->matter[update]->actived());
 
-                    ///int life_cycle = (this->matter[newPos]->actived());
-                        //this->matter[newPos]->strvation();
-                    //if(life_cycle == 0) {
-                    //    try_reproduce(newPos);
-                    //}
-
-                    int update;
-                    // try_jump: deal how to eat
-                    if(try_jump(i, newPos)) {
-                        update = newPos;
-                    } else {
-                        update = i;
-                    }
-                    int life_cycle = (this->matter[update]->actived());
-
-                    // Born first 
-                    if(life_cycle == 0) {
-                        try_reproduce(update);
-                    }
-
-
+                        // Born first 
+                        if(life_cycle == 0) {
+                            try_reproduce(update);
+                        }
                         // Die after born
-                    if(this->matter[update]->strvation()) {
-                        int x = this->matter[update]->get_posX();
-                        int y = this->matter[update]->get_posY();
-                        delete this->matter[update];
-                        this->matter[update] = new Border(x, y, EMPTY_SYMBOL);
-                        display(*(this->matter[update]));
+                        if(this->matter[update]->strvation()) {
+                            int x = this->matter[update]->get_posX();
+                            int y = this->matter[update]->get_posY();
+                            delete this->matter[update];
+                            this->matter[update] = new Border(x, y, EMPTY_SYMBOL);
+                            display(*(this->matter[update]));
+                        }
                     }
-
-                    //if(life_cycle == 0) {
-                     //   try_reproduce(update);
-                    //}
-
                 }
-
-
             }
             for(int i = 0; i < num; i++) { //if not ig
                 if(!(this->matter[i]->isInorganic()) && (this->matter[i]->isActived())) {
@@ -268,12 +256,12 @@ class Space {
         void run() {
             initMap();
             for(int i = 0; i < 1000; i++) {
-                _gotoXY(width+3, height+4);
-                fgetc(stdin);
+                //_gotoXY(width+3, height+4);
+                //fgetc(stdin);
                 
                 organism_move();
                 
-                //sleep(1);
+                sleep(1);
             }
         }
 
@@ -319,10 +307,16 @@ class Space {
         }
         Matter **get_matter() {return matter;}
         int get_width() {return width;}
+
     private:
         int width;
         int height;
         Matter **matter;
+        string runOrder[SPECIES_NUM] = {
+            //DOODLEBUG first
+            DOODLEBUG_SYMBOL, 
+            ANT_SYMBOL
+        };
 }; 
 
 
@@ -510,8 +504,8 @@ class Doodlebug : public Organism {
 
 int main() {
     //Space space(300,300);
-    //Space space(120,20); //ok
-    Space space(20,20); //ok
+    Space space(120,20); //ok
+    //Space space(20,20); //ok
     //Space space(2,2); //ok
     //Doodlebug *doodlebug = new Doodlebug[300];
     Doodlebug doodlebug;
@@ -520,9 +514,11 @@ int main() {
     Ant ant;
     //space.gen_matter(ant, 300);
 
-    space.gen_matter(&doodlebug, 100);
-    space.gen_matter(&ant, 80);
+    //space.gen_matter(&doodlebug, 100); //ok
+    //space.gen_matter(&ant, 80); //ok
 
+    space.gen_matter(&doodlebug, 200); //ok
+    space.gen_matter(&ant, 150); //ok
 
     space.run();
 
