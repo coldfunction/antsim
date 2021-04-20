@@ -27,6 +27,8 @@
 #define ANT_REPRODUCE_CYCLE 3
 #define DOODLEBUG_REPRODUCE_CYCLE 8
 
+#define DOODLEBUG_HP 3
+
 class Space;
 
 //int global_dc = 0;
@@ -78,7 +80,8 @@ class Matter {
         virtual void rebirth(Space *space, string wantGo) {}
         virtual int get_newPos(Space *space, int oldPos, string wantGo) {return -1;}
         virtual int go_where(Space *space, int oldPos) {return -1;}
-    
+        virtual void strvation() {return;}
+
     private: 
         string shape;
         int pos_X;
@@ -214,13 +217,31 @@ class Space {
 
                     //cout << "old, new = " << i << " : " << newPos << endl;
                     //cout << "shape = " << this->matter[i]->get_shape() << endl;
+
+                    ///int life_cycle = (this->matter[newPos]->actived());
+                        //this->matter[newPos]->strvation();
+                    //if(life_cycle == 0) {
+                    //    try_reproduce(newPos);
+                    //}
+
+                    int update;
                     // try_jump: deal how to eat
                     if(try_jump(i, newPos)) {
-                        int life_cycle = (this->matter[newPos]->actived());
-                        if(life_cycle == 0) {
-                            try_reproduce(newPos);
-                        }
+                        update = newPos;
+                        
+                        //life_cycle = (this->matter[newPos]->actived());
+                        //if(life_cycle == 0) {
+                        //    try_reproduce(newPos);
+                        //}
+                    } else {
+                        //life_cycle = (this->matter[i]->actived());
+                        update = i;
                     }
+                    int life_cycle = (this->matter[update]->actived());
+                    if(life_cycle == 0) {
+                        try_reproduce(update);
+                    }
+
                 }
 
 
@@ -235,12 +256,12 @@ class Space {
         void run() {
             initMap();
             for(int i = 0; i < 1000; i++) {
-                //_gotoXY(width+3, height+4);
-                //fgetc(stdin);
+                _gotoXY(width+3, height+4);
+                fgetc(stdin);
                 
                 organism_move();
                 
-                sleep(1);
+                //sleep(1);
             }
         }
 
@@ -373,18 +394,23 @@ class Organism : public Matter {
         void reproduce(Space *space) {
             rebirth(space, EMPTY_SYMBOL);
         }
-
         int actived() {
             moved = true;
             life_cycle = (life_cycle+1)%reproduce_cycle;
             return life_cycle;
         }
+        int move(Space *space) {
+            int action = get_random_num(Action::RIGHT, Action::DOWN);
+            return space->updatePos(this, action); 
+        }
 
+       // virtual void strvation() {return;}
         
     protected:
         int reproduce_cycle;
         vector<string> Predation;
         int life_cycle = 0;
+        int HP = DOODLEBUG_HP;
 };
 
 
@@ -403,10 +429,11 @@ class Ant : public Organism {
         Organism(x, y, ANT_SYMBOL) {
             reproduce_cycle = ANT_REPRODUCE_CYCLE;
         }
-        int move(Space *space) {
+    /*    int move(Space *space) {
             int action = get_random_num(Action::RIGHT, Action::DOWN);
             return space->updatePos(this, action); 
-        }/*
+        }*/
+        /*
         int actived() {
             moved = true;
             life_cycle = (life_cycle+1)%reproduce_cycle;
@@ -435,13 +462,11 @@ class Doodlebug : public Organism {
             Predation.push_back(ANT_SYMBOL);
             reproduce_cycle = DOODLEBUG_REPRODUCE_CYCLE;
         }
+        /*
         int move(Space *space) {
-            //if food around me...
-
-            //if no food around
             int action = get_random_num(Action::RIGHT, Action::DOWN);
             return space->updatePos(this, action); 
-        }
+        }*/
         Matter* childbirth(int x, int y) {return new Doodlebug(x,y);}
         //void reproduce(Space *space) {}
         int go_where(Space *space, int oldPos) {
