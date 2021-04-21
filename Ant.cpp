@@ -33,8 +33,6 @@
 
 class Space;
 
-//int global_dc = 0;
-
 using namespace std;
 
 int get_random_num(int a, int b) {
@@ -45,16 +43,15 @@ int get_random_num(int a, int b) {
 }
 
 enum Action {
-    //STOP, RIGHT, LEFT, UP, DOWN
     RIGHT=1, LEFT, UP, DOWN
 };
 
 class Matter {
     public: 
         Matter(int x, int y, string shape) : 
-            pos_X(x/*+INIT_X*/), pos_Y(y/*+INIT_Y*/), shape(shape) {}
+            pos_X(x), pos_Y(y), shape(shape) {}
         Matter(int x, int y, string shape, bool inorganic) : 
-            pos_X(x/*+INIT_X*/), pos_Y(y/*+INIT_Y*/), shape(shape), inorganic(inorganic) {}
+            pos_X(x), pos_Y(y), shape(shape), inorganic(inorganic) {}
         Matter(string shape) : shape(shape) {}
         Matter(string shape, bool inorganic) : shape(shape), inorganic(inorganic) {}
         Matter() = default;
@@ -107,7 +104,6 @@ class Border : public Matter {
 
 class Space { 
     public: 
-
         Space(int width, int height) : width(width+2), height(height+2) {
             int total = this->width * this->height;
             cout << "cocotion test total =" << total << endl;
@@ -142,19 +138,14 @@ class Space {
                 }
             }
         }
-        
         ~Space() { 
             
             int total = width * height;
             for(int i = 0; i < total; i++) {
-                //if(matter[i]->isInorganic()) {
                     delete matter[i];
-               // }
             }
             delete [] matter;
-            
         }
-
         void initMap() {
             _clear();
             _disable_cursor();
@@ -167,12 +158,9 @@ class Space {
             fflush(stdout); 
 
         }
-
         int updatePos(Matter *matter, int action) {
             int X = matter->get_posX();
             int Y = matter->get_posY();
-            //cout << "action = " << action << endl;
-            //cout << "before X, Y = " << X <<"," << Y << endl;
             switch(action) {
                 case Action::RIGHT:
                     ++X; 
@@ -186,8 +174,6 @@ class Space {
                 default:    
                     --Y;
             }
-            //cout << "after X, Y = " << X <<"," << Y << endl;
-            //cout << "update pos = " << Y*width+X << endl; 
             return Y*width+X;
         }
 
@@ -205,7 +191,6 @@ class Space {
 
         void try_reproduce(int pos) {
             this->matter[pos]->reproduce(this);
-
         }
 
         void organism_move() {
@@ -217,11 +202,9 @@ class Space {
                     //TODO: Turn on/off non-sequential / sequential query
                     //if(!(this->matter[i]->isInorganic()) && !(this->matter[i]->isActived())) {
                     if((this->matter[i]->get_shape() == shape) && !(this->matter[i]->isActived())) {
-                        // Doodlebug will try to eat. If fail to eat, HP--;
+                        // Doodlebug will try to prey. If fail to prey, HP--;
                         int newPos = this->matter[i]->go_where(this, i);
 
-                    //cout << "old, new = " << i << " : " << newPos << endl;
-                    //cout << "shape = " << this->matter[i]->get_shape() << endl;
                         int update;
                         // try_jump: deal how to eat
                         if(try_jump(i, newPos)) {
@@ -267,29 +250,16 @@ class Space {
         }
 
         void display(Matter &matter) {
-           /* if(matter.get_shape() == "O") {
-                global_dc++;
-                //cout << matter.get_shape() << " X: "<< matter.get_posX() << "Y: "<< matter.get_posY() << " count:"<< global_dc << endl;
-                _set_XY(matter.get_posX(), matter.get_posY(), matter.get_shape().c_str());
-                fflush(stdout); 
-            }*/
             _set_XY(matter.get_posX()+INIT_X, matter.get_posY()+INIT_Y, matter.get_shape().c_str());
             //fflush(stdout); 
         }
 
         //default is random
-        //template <typename MATTER>
-        //void gen_matter(MATTER matter, int number) {
         void gen_matter(Matter *matter, int number) {
-            ofstream out("info.txt");
-
+            //ofstream out("info.txt");
             for(int i = 0; i < number; i++) {
-                //int pos = i+303;
                 //if eat sucessfully return true 
                 int pos;
-  //              do {
- //                   pos = get_random_num(0, width*height-1);
-//                } while(!matter[i].eat(&(this->matter[pos])));
                 do {
                     pos = get_random_num(0, width*height-1);
                 } while(this->matter[pos]->get_shape() != EMPTY_SYMBOL);
@@ -297,18 +267,14 @@ class Space {
                 int x = this->matter[pos]->get_posX();
                 int y = this->matter[pos]->get_posY();
                 delete this->matter[pos];
-                //this->matter[pos] = new MATTER(x,y);
                 this->matter[pos] = matter->childbirth(x,y);
-
-                out << this->matter[pos]->get_shape() << "X: "<< this->matter[pos]->get_posX() << "Y: "<< this->matter[pos]->get_posY() << endl;
-                out << this->matter[pos]->isInorganic();
-                //fgetc(stdin);
+                //out << this->matter[pos]->get_shape() << "X: "<< this->matter[pos]->get_posX() << "Y: "<< this->matter[pos]->get_posY() << endl;
+                //out << this->matter[pos]->isInorganic();
             }
-            out.close();
+            //out.close();
         }
         Matter **get_matter() {return matter;}
         int get_width() {return width;}
-
     private:
         int width;
         int height;
@@ -327,7 +293,6 @@ class Organism : public Matter {
             Predation.push_back(EMPTY_SYMBOL);
         }
         Organism(string shape) : Matter(shape, false) {
-            //Predation[EMPTY_SYMBOL] = true;
             Predation.push_back(EMPTY_SYMBOL);
         }
 
@@ -336,33 +301,21 @@ class Organism : public Matter {
         }
         bool eat(Matter **matter) {
             //if this can eat
-            //if(this->get_shape()=="X" && (*matter)->get_shape() == "O") {
-                //cout << "ready to eat " << endl;
-                //cout << "source = " << this->get_posX() << " : " << this->get_posY() << endl;
-                //cout << "des = " << (*matter)->get_posX() << " : " << (*matter)->get_posY() << endl;
-            //}
             if(canEat((*matter)->get_shape())) { 
                 this->set_posX((*matter)->get_posX());
                 this->set_posY((*matter)->get_posY());
                 delete *matter;
                 *matter = this;
-                
-                //cout << "after eat source = " << this->get_posX() << " : " << this->get_posY() << endl;
-
-             //   cout << "after eat" << endl;
                 return true;
             } else {
                 //TODO: if equal, depend on somewhat..
                 return false;
             }
         }
-
-         
         int get_newPos(Space *space, int oldPos, string wantGo) {
             if(wantGo == UNIVERSAL_SYMBOL) {
                 return move(space);
             }
-            
             int det[4] = {-1}; //U, D, L, R
             int newPos;
             do {
@@ -410,20 +363,12 @@ class Organism : public Matter {
             int action = get_random_num(Action::RIGHT, Action::DOWN);
             return space->updatePos(this, action); 
         }
-
-       // virtual void strvation() {return;}
-        
     protected:
         int reproduce_cycle;
         vector<string> Predation;
         int life_cycle = 0;
         int HP = DOODLEBUG_HP;
 };
-
-
-
-
-
 
 class Ant : public Organism {
     public:
@@ -436,24 +381,10 @@ class Ant : public Organism {
         Organism(x, y, ANT_SYMBOL) {
             reproduce_cycle = ANT_REPRODUCE_CYCLE;
         }
-    /*    int move(Space *space) {
-            int action = get_random_num(Action::RIGHT, Action::DOWN);
-            return space->updatePos(this, action); 
-        }*/
-        /*
-        int actived() {
-            moved = true;
-            life_cycle = (life_cycle+1)%reproduce_cycle;
-            return life_cycle;
-        }*/
         Matter* childbirth(int x, int y) {return new Ant(x,y);}
         int go_where(Space *space, int oldPos) {
             return get_newPos(space, oldPos, UNIVERSAL_SYMBOL);
         }
-
-        //void reproduce(Space *space) {
-        //    rebirth(space, EMPTY_SYMBOL);
-        //}
  };
 
 class Doodlebug : public Organism {
@@ -469,13 +400,7 @@ class Doodlebug : public Organism {
             Predation.push_back(ANT_SYMBOL);
             reproduce_cycle = DOODLEBUG_REPRODUCE_CYCLE;
         }
-        /*
-        int move(Space *space) {
-            int action = get_random_num(Action::RIGHT, Action::DOWN);
-            return space->updatePos(this, action); 
-        }*/
         Matter* childbirth(int x, int y) {return new Doodlebug(x,y);}
-        //void reproduce(Space *space) {}
         int go_where(Space *space, int oldPos) {
             int pos = get_newPos(space, oldPos, ANT_SYMBOL);
             if(pos == -1) {
@@ -489,19 +414,9 @@ class Doodlebug : public Organism {
         }
         void refillHP() {HP = DOODLEBUG_HP;}
         bool strvation() {
-            //--HP;
-            //int x = this->get_posX();            
-            //int y = this->get_posY();            
-            //delete this;
-            //this = new Border(x, y, EMPTY_SYMBOL);
-
-            //return true;
-            //return !(--HP);
             return !HP;
         }
 };
-
-
 
 int main() {
     //Space space(300,300);
@@ -523,10 +438,7 @@ int main() {
 
     space.run();
 
-
     cout << "delete all" << endl;
-   // delete [] ant;
-//    delete [] doodlebug;
 
 
     return 0;
