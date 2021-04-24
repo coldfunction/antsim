@@ -2,6 +2,8 @@
 #include <fstream> 
 #include <random>
 #include <algorithm>
+#include <map>
+#include <boost/process.hpp>
 
 #include <stdio.h>
 #include <unistd.h>
@@ -35,11 +37,44 @@ class Space;
 
 using namespace std;
 
+class Info {
+    public: 
+        Info() {
+            boost::process::system("rm info.txt"); 
+            out.open("info.txt", ios::app);
+            species[ANT_SYMBOL] = 0;
+            species[DOODLEBUG_SYMBOL] = 0;
+            boost::process::spawn("python3 info.py");
+        }
+        ~Info() {
+            out.close(); 
+        }
+        void show() {
+            cycle++;
+            out << cycle << " "<< species[ANT_SYMBOL] << " " << species[DOODLEBUG_SYMBOL] << endl;
+        } 
+        void dec(string shape) {
+            if (species.find(shape) != species.end())
+                species[shape]--;
+        }
+        void add(string shape) {
+            if (species.find(shape) != species.end())
+                species[shape]++;
+        }
+    private:
+        ofstream out;
+        map<string, int> species;
+        int cycle = 0;
+};
+
+Info info;
+
+
 int get_random_num(int a, int b) {
     std::random_device dev;
     std::mt19937 rng(dev());
-    std::uniform_int_distribution<std::mt19937::result_type> dist6(a,b); // distribution in range [a, b]
-    return dist6(rng);
+    std::uniform_int_distribution<std::mt19937::result_type> dist(a,b); // distribution in range [a, b]
+    return dist(rng);
 }
 
 enum Action {
@@ -220,6 +255,7 @@ class Space {
                         }
                         // Die after born
                         if(this->matter[update]->strvation()) {
+                            info.dec(this->matter[update]->get_shape());
                             int x = this->matter[update]->get_posX();
                             int y = this->matter[update]->get_posY();
                             delete this->matter[update];
@@ -239,13 +275,14 @@ class Space {
 
         void run() {
             initMap();
-            for(int i = 0; i < 1000; i++) {
+            for(int i = 0; i < 10000; i++) {
                 //_gotoXY(width+3, height+4);
                 //fgetc(stdin);
                 
                 organism_move();
-                
-                sleep(1);
+                info.show();
+
+                //sleep(1);
             }
         }
 
@@ -302,6 +339,7 @@ class Organism : public Matter {
         bool eat(Matter **matter) {
             //if this can eat
             if(canEat((*matter)->get_shape())) { 
+                info.dec((*matter)->get_shape());
                 this->set_posX((*matter)->get_posX());
                 this->set_posY((*matter)->get_posY());
                 delete *matter;
@@ -381,7 +419,10 @@ class Ant : public Organism {
         Organism(x, y, ANT_SYMBOL) {
             reproduce_cycle = ANT_REPRODUCE_CYCLE;
         }
-        Matter* childbirth(int x, int y) {return new Ant(x,y);}
+        Matter* childbirth(int x, int y) {
+            info.add(ANT_SYMBOL);
+            return new Ant(x,y);
+        }
         int go_where(Space *space, int oldPos) {
             return get_newPos(space, oldPos, UNIVERSAL_SYMBOL);
         }
@@ -400,7 +441,10 @@ class Doodlebug : public Organism {
             Predation.push_back(ANT_SYMBOL);
             reproduce_cycle = DOODLEBUG_REPRODUCE_CYCLE;
         }
-        Matter* childbirth(int x, int y) {return new Doodlebug(x,y);}
+        Matter* childbirth(int x, int y) {
+            info.add(DOODLEBUG_SYMBOL);
+            return new Doodlebug(x,y);
+        }
         int go_where(Space *space, int oldPos) {
             int pos = get_newPos(space, oldPos, ANT_SYMBOL);
             if(pos == -1) {
@@ -420,8 +464,8 @@ class Doodlebug : public Organism {
 
 int main() {
     //Space space(300,300);
-    Space space(120,20); //ok
-    //Space space(20,20); //ok
+    //Space space(120,20); //ok
+    Space space(20,20); //ok
     //Space space(2,2); //ok
     //Doodlebug *doodlebug = new Doodlebug[300];
     Doodlebug doodlebug;
@@ -433,8 +477,10 @@ int main() {
     //space.gen_matter(&doodlebug, 100); //ok
     //space.gen_matter(&ant, 80); //ok
 
-    space.gen_matter(&doodlebug, 200); //ok
-    space.gen_matter(&ant, 150); //ok
+    //space.gen_matter(&doodlebug, 200); //ok
+    //space.gen_matter(&ant, 150); //ok
+    space.gen_matter(&doodlebug, 100); //ok
+    space.gen_matter(&ant, 120); //ok
 
     space.run();
 
