@@ -118,8 +118,8 @@ class Matter {
         virtual bool eat(Matter **matter) {return false;}
         virtual int move(Space *matter) {return -1;}
         virtual Matter* childbirth(int x, int y) {return nullptr;}
-        virtual void reproduce(Space *space) {}
-        virtual void rebirth(Space *space, string wantGo) {}
+        virtual int reproduce(Space *space) {return -1;}
+        virtual int rebirth(Space *space, string wantGo) {return -1;}
         virtual int get_newPos(Space *space, int oldPos, string wantGo) {return -1;}
         virtual int go_where(Space *space, int oldPos) {return -1;}
         virtual bool strvation() {return false;}
@@ -190,6 +190,27 @@ class Space {
             delete [] matter;
             _enable_cursor();
         }
+        void add_species_pos(string shape, int pos) {
+            species_pos[shape].push_back(pos);
+        }
+        int del_species_pos(string shape, int pos) {
+            int index = -1;
+            if(species_pos.find(shape)!=species_pos.end()) {
+                //species_pos[shape].erase(remove(species_pos[shape].begin(),
+                 //                               species_pos[shape].end(),
+                  //                              pos
+                   //                             ), species_pos[shape].end());
+                vector<int>::iterator it  = find(species_pos[shape].begin(), species_pos[shape].end(), pos);
+                if(it != species_pos[shape].end()) {
+                    index = distance(species_pos[shape].begin(), it);
+                    species_pos[shape].erase(it);
+                }
+                //return true;
+            } 
+            return -1;
+        }
+
+
         void initMap() {
             _clear();
             _disable_cursor();
@@ -233,8 +254,8 @@ class Space {
             return false;
         }
 
-        void try_reproduce(int pos) {
-            this->matter[pos]->reproduce(this);
+        int try_reproduce(int pos) {
+            return matter[pos]->reproduce(this);
         }
 
         void organism_move() {
@@ -242,7 +263,10 @@ class Space {
 
             for(int order = 0; order < SPECIES_NUM; order++) {
                 string shape = runOrder[order];
-                for(int i = 0; i < num; i++) { //if not ig
+                //for(int i = 0; i < num; i++) { //if not ig
+                for(int n = 0; n < species_pos[shape].size(); n++) {
+                    int i = (species_pos[shape])[n];
+
                     //TODO: Turn on/off non-sequential / sequential query
                     //if(!(this->matter[i]->isInorganic()) && !(this->matter[i]->isActived())) {
                     if((this->matter[i]->get_shape() == shape) && !(this->matter[i]->isActived())) {
@@ -253,6 +277,13 @@ class Space {
                         // try_jump: deal how to eat
                         if(try_jump(i, newPos)) {
                             update = newPos;
+
+                            if( del_species_pos(this->matter[i]->get_shape(), i) >= 0) {
+                                n--;
+                            }
+                            del_species_pos(matter[newPos]->get_shape(), newPos);
+                            add_species_pos(this->matter[newPos]->get_shape(), newPos);
+                            //del_species_pos(this->matter[i]->get_shape(), i);
                         } else {
                             update = i;
                         }
@@ -260,11 +291,16 @@ class Space {
 
                         // Born first 
                         if(life_cycle == 0) {
-                            try_reproduce(update);
+                            int newpos = try_reproduce(update);
+                            if(newpos >= 0) {
+                               add_species_pos(matter[newpos]->get_shape(), newpos);
+                            }
                         }
                         // Die after born
                         if(this->matter[update]->strvation()) {
                             info.dec(this->matter[update]->get_shape());
+                            int dn = del_species_pos(matter[update]->get_shape(), update);
+                            if(dn >= 0 && dn <= n) n--;
                             int x = this->matter[update]->get_posX();
                             int y = this->matter[update]->get_posY();
                             delete this->matter[update];
@@ -314,6 +350,7 @@ class Space {
                 int y = this->matter[pos]->get_posY();
                 delete this->matter[pos];
                 this->matter[pos] = matter->childbirth(x,y);
+                add_species_pos(matter->get_shape(), pos);
                 //out << this->matter[pos]->get_shape() << "X: "<< this->matter[pos]->get_posX() << "Y: "<< this->matter[pos]->get_posY() << endl;
                 //out << this->matter[pos]->isInorganic();
             }
@@ -330,6 +367,7 @@ class Space {
             DOODLEBUG_SYMBOL, 
             ANT_SYMBOL
         };
+        map<string, vector<int>> species_pos;
 }; 
 
 
@@ -380,13 +418,13 @@ class Organism : public Matter {
             } while ((space->get_matter())[newPos]->get_shape() != wantGo);
             return newPos;
         } 
-        void rebirth(Space *space, string wantGo) {
+        int rebirth(Space *space, string wantGo) {
             int width = space->get_width();
             int x = this->get_posX();
             int y = this->get_posY();
             int oldPos = y*width+x;
             int newPos = get_newPos(space, oldPos, wantGo);
-            if(newPos < 0) return;
+            if(newPos < 0) return newPos;
 
             //newPos is ok, ready to born
             //TODO: take get_matter by temp pointer
@@ -396,10 +434,10 @@ class Organism : public Matter {
             (space->get_matter())[newPos] = childbirth(x, y);
             (space->get_matter())[newPos]->move_done();
             space->display(*((space->get_matter())[newPos]));
-        
+            return newPos; 
         }
-        void reproduce(Space *space) {
-            rebirth(space, EMPTY_SYMBOL);
+        int reproduce(Space *space) {
+            return rebirth(space, EMPTY_SYMBOL);
         }
         int actived() {
             moved = true;
