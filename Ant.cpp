@@ -7,9 +7,14 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <cstdlib>
+#include <signal.h>
+
+#include "cxxopts.hpp"
 
 #define _clear() printf("\033[H\033[J")
 #define _disable_cursor() printf("\033[?25l")
+#define _enable_cursor() printf("\e[?25h")
 #define _gotoXY(x,y) printf("\033[%d;%dH", (y), (x))
 #define _set_XY(x,y,s) printf("\033[%d;%dH%s", (y), (x), (s)) 
 #define INIT_X 2
@@ -44,10 +49,13 @@ class Info {
             out.open("info.txt", ios::app);
             species[ANT_SYMBOL] = 0;
             species[DOODLEBUG_SYMBOL] = 0;
-            boost::process::spawn("python3 info.py");
+            //boost::process::spawn("python3 info.py");
         }
         ~Info() {
             out.close(); 
+        }
+        void count_num_show() {
+            boost::process::spawn("python3 info.py");
         }
         void show() {
             cycle++;
@@ -180,6 +188,7 @@ class Space {
                     delete matter[i];
             }
             delete [] matter;
+            _enable_cursor();
         }
         void initMap() {
             _clear();
@@ -462,31 +471,59 @@ class Doodlebug : public Organism {
         }
 };
 
-int main() {
-    //Space space(300,300);
-    //Space space(120,20); //ok
-    Space space(20,20); //ok
-    //Space space(2,2); //ok
-    //Doodlebug *doodlebug = new Doodlebug[300];
+void signal_callback_handler(int signum) {
+    _enable_cursor();
+   // Terminate program
+   exit(signum);
+}
+
+
+int main(int argc, char** argv) 
+{
+//    int xlimit = 20;
+ //   int ylimit = 20;
+  //  int doodlebug_num = 100;
+   // int ant_num = 120
+    signal(SIGINT, signal_callback_handler);
+
+
+    cxxopts::Options options("./exe", "opeions");
+
+    options.add_options()
+        ("x,xlimit", "width size of the world", cxxopts::value<int>()->default_value("20"))
+        ("y,ylimit", "height size of the world", cxxopts::value<int>()->default_value("20"))
+        ("d,doodlebug_num", "number of doodlebugs", cxxopts::value<int>()->default_value("100"))
+        ("a,ant_num", "number of ants", cxxopts::value<int>()->default_value("120"))
+        ("h,help", "Print usage")
+    ;
+    auto result = options.parse(argc, argv);
+    if (result.count("help")){
+      std::cout << options.help() << std::endl;
+      exit(0);
+    }
+
+
+    int xlimit = result["xlimit"].as<int>();
+    int ylimit = result["ylimit"].as<int>();
+    int doodlebug_num = result["doodlebug_num"].as<int>();
+    int ant_num = result["ant_num"].as<int>();
+
+
+
+    Space space(xlimit, ylimit); //ok
     Doodlebug doodlebug;
-
-    //Ant *ant = new Ant[300];
     Ant ant;
-    //space.gen_matter(ant, 300);
 
-    //space.gen_matter(&doodlebug, 100); //ok
-    //space.gen_matter(&ant, 80); //ok
+    space.gen_matter(&doodlebug, doodlebug_num); //ok
+    space.gen_matter(&ant, ant_num); //ok
 
-    //space.gen_matter(&doodlebug, 200); //ok
-    //space.gen_matter(&ant, 150); //ok
-    space.gen_matter(&doodlebug, 100); //ok
-    space.gen_matter(&ant, 120); //ok
+    info.count_num_show();
 
     space.run();
 
     cout << "delete all" << endl;
 
+    return EXIT_SUCCESS;
 
-    return 0;
 
 }
