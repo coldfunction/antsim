@@ -190,6 +190,12 @@ class Space {
             delete [] matter;
             _enable_cursor();
         }
+        void add_species_pos(string shape, int pos) {
+            species_pos[shape].push_back(pos);
+        }
+        void reset_species_pos(string shape) {
+            species_pos[shape].clear();
+        }
         void initMap() {
             _clear();
             _disable_cursor();
@@ -222,82 +228,94 @@ class Space {
         }
 
         bool try_jump(int src, int des) {
-            if (this->matter[src]->eat(&(this->matter[des]))) {
+            if (matter[src]->eat(&matter[des])) {
                 int y = src/width;
                 int x = src%width;
-                this->matter[src] = new Border(x, y, EMPTY_SYMBOL);
-                display(*(this->matter[src]));
-                display(*(this->matter[des]));
+                matter[src] = new Border(x, y, EMPTY_SYMBOL);
+                display(*matter[src]);
+                display(*matter[des]);
                 return true;
             }
             return false;
         }
 
         void try_reproduce(int pos) {
-            this->matter[pos]->reproduce(this);
+            matter[pos]->reproduce(this);
         }
+        inline void run(int i, string shape) {
+            if((matter[i]->get_shape() == shape) && !(matter[i]->isActived())) {
+                // Doodlebug will try to prey. If fail to prey, HP--;
+                int newPos = matter[i]->go_where(this, i);
+                int update;
+                // try_jump: deal how to eat
+                if(try_jump(i, newPos)) {
+                    update = newPos;
+                } else {
+                    update = i;
+                }
+                int life_cycle = matter[update]->actived();
 
+                // Born first 
+                if(life_cycle == 0) {
+                    try_reproduce(update);
+                }
+                // Die after born
+                if(matter[update]->strvation()) {
+                    info.dec(matter[update]->get_shape());
+                    int x = matter[update]->get_posX();
+                    int y = matter[update]->get_posY();
+                    delete matter[update];
+                    matter[update] = new Border(x, y, EMPTY_SYMBOL);
+                    display(*matter[update]);
+                }
+            } else if ((runOrder[0] == shape) && !(matter[i]->isInorganic()) && !(matter[i]->isActived())) {
+                add_species_pos(matter[i]->get_shape(), i);
+            }
+        }
         void organism_move() {
             int num = width*height;
 
-            for(int order = 0; order < SPECIES_NUM; order++) {
+            for(int i = 0; i < num; i++) { //if not ig
+                string shape = runOrder[0];
+                run(i,shape);
+            }
+
+            for(int order = 1; order < SPECIES_NUM; order++) {
                 string shape = runOrder[order];
-                for(int i = 0; i < num; i++) { //if not ig
-                    //TODO: Turn on/off non-sequential / sequential query
-                    //if(!(this->matter[i]->isInorganic()) && !(this->matter[i]->isActived())) {
-                    if((this->matter[i]->get_shape() == shape) && !(this->matter[i]->isActived())) {
-                        // Doodlebug will try to prey. If fail to prey, HP--;
-                        int newPos = this->matter[i]->go_where(this, i);
-
-                        int update;
-                        // try_jump: deal how to eat
-                        if(try_jump(i, newPos)) {
-                            update = newPos;
-                        } else {
-                            update = i;
-                        }
-                        int life_cycle = (this->matter[update]->actived());
-
-                        // Born first 
-                        if(life_cycle == 0) {
-                            try_reproduce(update);
-                        }
-                        // Die after born
-                        if(this->matter[update]->strvation()) {
-                            info.dec(this->matter[update]->get_shape());
-                            int x = this->matter[update]->get_posX();
-                            int y = this->matter[update]->get_posY();
-                            delete this->matter[update];
-                            this->matter[update] = new Border(x, y, EMPTY_SYMBOL);
-                            display(*(this->matter[update]));
-                        }
-                    }
+                for(int i : species_pos[shape]) {
+                //for(int i = 0; i < species_pos[shape].size(); i++) {
+                    run(i,shape);
                 }
+                //for(int i = 0; i < num; i++) { //if not ig
+                 //   run(i,shape);
+
+                //}
             }
             for(int i = 0; i < num; i++) { //if not ig
-                if(!(this->matter[i]->isInorganic()) && (this->matter[i]->isActived())) {
-                    this->matter[i]->reset_actived();
+                if(!(matter[i]->isInorganic()) && matter[i]->isActived()) {
+                    matter[i]->reset_actived();
                 }
             }
+            for(int order = 1; order < SPECIES_NUM; order++) {
+                string shape = runOrder[order];
+                species_pos[shape].clear();
+            }
+
             fflush(stdout); 
         }
 
         void run() {
             initMap();
-            for(int i = 0; i < 10000; i++) {
-                //_gotoXY(width+3, height+4);
+            for(int i = 0; i < 1000; i++) {
                 //fgetc(stdin);
-                
                 organism_move();
                 info.show();
-
                 //sleep(1);
             }
         }
 
         void display(Matter &matter) {
             _set_XY(matter.get_posX()+INIT_X, matter.get_posY()+INIT_Y, matter.get_shape().c_str());
-            //fflush(stdout); 
         }
 
         //default is random
@@ -330,6 +348,7 @@ class Space {
             DOODLEBUG_SYMBOL, 
             ANT_SYMBOL
         };
+        map<string, vector<int>> species_pos;
 }; 
 
 
