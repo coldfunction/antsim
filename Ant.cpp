@@ -274,22 +274,17 @@ class Space {
         }
         void organism_move() {
             int num = width*height;
-
-            for(int i = 0; i < num; i++) { //if not ig
-                string shape = runOrder[0];
-                run(i,shape);
-            }
-
-            for(int order = 1; order < SPECIES_NUM; order++) {
+            for(int order = 0; order < SPECIES_NUM; order++) {
                 string shape = runOrder[order];
-                for(int i : species_pos[shape]) {
-                //for(int i = 0; i < species_pos[shape].size(); i++) {
-                    run(i,shape);
+                if(order == 0) {
+                    for(int i = 0; i < num; i++) { //if not ig
+                        run(i,shape);
+                    }
+                } else {
+                    for(int i : species_pos[shape]) {
+                        run(i,shape);
+                    }
                 }
-                //for(int i = 0; i < num; i++) { //if not ig
-                 //   run(i,shape);
-
-                //}
             }
             for(int i = 0; i < num; i++) { //if not ig
                 if(!(matter[i]->isInorganic()) && matter[i]->isActived()) {
