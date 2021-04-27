@@ -23,6 +23,7 @@ ln1, ln2, ln3, ln4 = ax.plot([], [], 'r-',
                          animated=False) #animated is associated with blit
 plt.setp(ln1, label='Ant')
 plt.setp(ln2, label='Doodlebug')
+plt.setp(ln3, label='Plant')
 plt.legend(loc=0, numpoints=1)
 
                          
@@ -38,8 +39,6 @@ def update(i): #i is an int from 0 to frames-1, and keep looping
     filenum = f.tell()
     #print(filenum)
 
-    global Y1
-    global Y2
     global current
    
     xlen = len(open("info.txt",'r').readlines())
@@ -54,7 +53,7 @@ def update(i): #i is an int from 0 to frames-1, and keep looping
     line = f.readline()
     line = line.replace('\n','')
     str1 = line.split(' ')
-    while len(str1) < 3 :
+    while len(str1) < 4 :
         f.close()
         f = open("info.txt", "r")
         f.seek(filenum)
@@ -66,6 +65,7 @@ def update(i): #i is an int from 0 to frames-1, and keep looping
     x = int(str1[0])
     y1 = int(str1[1])
     y2 = int(str1[2])
+    y3 = int(str1[3])
     
     current = x
     
@@ -77,14 +77,22 @@ def update(i): #i is an int from 0 to frames-1, and keep looping
     ydata.append(y1)
     xdata2.append(x)
     ydata2.append(y2)
+    xdata3.append(x)
+    ydata3.append(y3)
+
+    if x % 500 == 0:
+        MAXY = y1
 
     if y1 > MAXY: 
         MAXY = y1
     if y2 > MAXY: 
         MAXY = y2
+    if y3 > MAXY: 
+        MAXY = y3
 
     ln1.set_data(xdata, ydata)
     ln2.set_data(xdata2, ydata2)
+    ln3.set_data(xdata3, ydata3)
     return ln1, ln2, ln3, ln4
 
 def main():

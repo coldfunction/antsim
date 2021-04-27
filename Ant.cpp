@@ -30,13 +30,19 @@
 #define UNIVERSAL_SYMBOL "氣"
 #define ANT_SYMBOL "O"
 #define DOODLEBUG_SYMBOL "X"
+#define PLANT_SYMBOL "▓" 
 
-#define SPECIES_NUM 2
+#define SPECIES_NUM 3
 
-#define ANT_REPRODUCE_CYCLE 3
-#define DOODLEBUG_REPRODUCE_CYCLE 8
+#define ANT_REPRODUCE_CYCLE 7
+//#define DOODLEBUG_REPRODUCE_CYCLE 8
+#define DOODLEBUG_REPRODUCE_CYCLE 212
+#define PLANT_REPRODUCE_CYCLE 28
 
-#define DOODLEBUG_HP 3
+//#define DOODLEBUG_HP 3
+#define DOODLEBUG_HP 210
+#define ANT_HP 7
+#define PLANT_HP 2
 
 class Space;
 
@@ -49,6 +55,7 @@ class Info {
             out.open("info.txt", ios::app);
             species[ANT_SYMBOL] = 0;
             species[DOODLEBUG_SYMBOL] = 0;
+            species[PLANT_SYMBOL] = 0;
             //boost::process::spawn("python3 info.py");
         }
         ~Info() {
@@ -59,7 +66,8 @@ class Info {
         }
         void show() {
             cycle++;
-            out << cycle << " "<< species[ANT_SYMBOL] << " " << species[DOODLEBUG_SYMBOL] << endl;
+            out << cycle << " "<< species[ANT_SYMBOL] << " " << species[DOODLEBUG_SYMBOL] 
+            <<" "<< species[PLANT_SYMBOL] << endl;
         } 
         void dec(string shape) {
             if (species.find(shape) != species.end())
@@ -86,7 +94,7 @@ int get_random_num(int a, int b) {
 }
 
 enum Action {
-    RIGHT=1, LEFT, UP, DOWN
+    SAME=0, RIGHT=1, LEFT, UP, DOWN
 };
 
 class Matter {
@@ -124,6 +132,8 @@ class Matter {
         virtual int go_where(Space *space, int oldPos) {return -1;}
         virtual bool strvation() {return false;}
         virtual void refillHP() {return;}
+        virtual void dec_HP() {return;}
+        virtual int get_HP() {return 0;}
 
     private: 
         string shape;
@@ -228,7 +238,14 @@ class Space {
         }
 
         bool try_jump(int src, int des) {
+            if(des < 0) return false;
+            matter[src]->dec_HP();
+
+            bool des_isInorganic = matter[des]->isInorganic(); 
             if (matter[src]->eat(&matter[des])) {
+                //if(!des_isInorganic) {
+                //    matter[des]->refillHP();
+                //}
                 int y = src/width;
                 int x = src%width;
                 matter[src] = new Border(x, y, EMPTY_SYMBOL);
@@ -253,10 +270,10 @@ class Space {
                 } else {
                     update = i;
                 }
-                int life_cycle = matter[update]->actived();
+                int born_cycle = matter[update]->actived();
 
                 // Born first 
-                if(life_cycle == 0) {
+                if(born_cycle == 0) {
                     try_reproduce(update);
                 }
                 // Die after born
@@ -301,7 +318,7 @@ class Space {
 
         void run() {
             initMap();
-            for(int i = 0; i < 1000; i++) {
+            for(int i = 0; i < 1000000; i++) {
                 //fgetc(stdin);
                 organism_move();
                 info.show();
@@ -341,7 +358,8 @@ class Space {
         string runOrder[SPECIES_NUM] = {
             //DOODLEBUG first
             DOODLEBUG_SYMBOL, 
-            ANT_SYMBOL
+            ANT_SYMBOL,
+            PLANT_SYMBOL
         };
         map<string, vector<int>> species_pos;
 }; 
@@ -362,6 +380,13 @@ class Organism : public Matter {
         bool eat(Matter **matter) {
             //if this can eat
             if(canEat((*matter)->get_shape())) { 
+                if(!((*matter)->isInorganic())) {
+                    this->refillHP();
+                    (*matter)->dec_HP();
+                    if((*matter)->get_HP() != 0) {
+                        return false;
+                    }
+                }
                 info.dec((*matter)->get_shape());
                 this->set_posX((*matter)->get_posX());
                 this->set_posY((*matter)->get_posY());
@@ -417,8 +442,8 @@ class Organism : public Matter {
         }
         int actived() {
             moved = true;
-            life_cycle = (life_cycle+1)%reproduce_cycle;
-            return life_cycle;
+            born_cycle = (born_cycle+1)%reproduce_cycle;
+            return born_cycle;
         }
         int move(Space *space) {
             int action = get_random_num(Action::RIGHT, Action::DOWN);
@@ -427,8 +452,8 @@ class Organism : public Matter {
     protected:
         int reproduce_cycle;
         vector<string> Predation;
-        int life_cycle = 0;
-        int HP = DOODLEBUG_HP;
+        int born_cycle = 0;
+        //int HP = DOODLEBUG_HP;
 };
 
 class Ant : public Organism {
@@ -436,10 +461,12 @@ class Ant : public Organism {
         using Organism::Organism;
         Ant() : 
         Organism(ANT_SYMBOL) {
+            Predation.push_back(PLANT_SYMBOL);
             reproduce_cycle = ANT_REPRODUCE_CYCLE;
         }
         Ant(int x, int y) : 
         Organism(x, y, ANT_SYMBOL) {
+            Predation.push_back(PLANT_SYMBOL);
             reproduce_cycle = ANT_REPRODUCE_CYCLE;
         }
         Matter* childbirth(int x, int y) {
@@ -449,6 +476,19 @@ class Ant : public Organism {
         int go_where(Space *space, int oldPos) {
             return get_newPos(space, oldPos, UNIVERSAL_SYMBOL);
         }
+        void refillHP() {
+            if(HP < ANT_HP) {
+                HP+=2; 
+            }
+        }
+        void dec_HP() {HP--;}
+        void inc_HP() {HP++;}
+        int get_HP() {return HP;}
+        bool strvation() {
+            return !HP;
+        }
+    private:
+        int HP = ANT_HP;
  };
 
 class Doodlebug : public Organism {
@@ -472,18 +512,71 @@ class Doodlebug : public Organism {
             int pos = get_newPos(space, oldPos, ANT_SYMBOL);
             if(pos == -1) {
                 //fail to eat
+               // --HP;
+               return get_newPos(space, oldPos, UNIVERSAL_SYMBOL);
+            } else {
+                //refillHP();
+                return pos;
+            }
+        }
+        void dec_HP() {HP--;}
+        void inc_HP() {HP++;}
+        int get_HP() {return HP;}
+        void refillHP() {HP = DOODLEBUG_HP;}
+        bool strvation() {
+            return !HP;
+        }
+    private:
+        int HP = DOODLEBUG_HP;
+};
+
+class Plant : public Organism {
+    public:
+        using Organism::Organism;
+        Plant() : 
+        Organism(PLANT_SYMBOL) {
+            //Predation.push_back(ANT_SYMBOL);
+            reproduce_cycle = PLANT_REPRODUCE_CYCLE;
+        }
+        Plant(int x, int y) : 
+        Organism(x, y, PLANT_SYMBOL) {
+            //Predation.push_back(ANT_SYMBOL);
+            reproduce_cycle = PLANT_REPRODUCE_CYCLE;
+        }
+        Matter* childbirth(int x, int y) {
+            info.add(PLANT_SYMBOL);
+            return new Plant(x,y);
+        }
+        int go_where(Space *space, int oldPos) {
+/*            int pos = get_newPos(space, oldPos, PLANT_SYMBOL);
+            if(pos == -1) {
+                //fail to eat
                 --HP;
                return get_newPos(space, oldPos, UNIVERSAL_SYMBOL);
             } else {
                 refillHP();
                 return pos;
-            }
+            }*/
+            //--HP;
+            refillHP();
+            return -1;
         }
-        void refillHP() {HP = DOODLEBUG_HP;}
-        bool strvation() {
-            return !HP;
+        void refillHP() {
+            //if(HP < PLANT_HP) {
+            //    ++HP;
+            //}
         }
+        //bool strvation() {
+         //   return !HP;
+        //}
+        void dec_HP() {HP--;}
+        void inc_HP() {HP++;}
+        int get_HP() {return HP;}
+    private:
+        int HP = PLANT_HP;
 };
+
+
 
 void signal_callback_handler(int signum) {
     _enable_cursor();
@@ -508,6 +601,7 @@ int main(int argc, char** argv)
         ("y,ylimit", "height size of the world", cxxopts::value<int>()->default_value("20"))
         ("d,doodlebug_num", "number of doodlebugs", cxxopts::value<int>()->default_value("100"))
         ("a,ant_num", "number of ants", cxxopts::value<int>()->default_value("120"))
+        ("p,plant_num", "number of plants", cxxopts::value<int>()->default_value("100"))
         ("h,help", "Print usage")
     ;
     auto result = options.parse(argc, argv);
@@ -521,15 +615,18 @@ int main(int argc, char** argv)
     int ylimit = result["ylimit"].as<int>();
     int doodlebug_num = result["doodlebug_num"].as<int>();
     int ant_num = result["ant_num"].as<int>();
+    int plant_num = result["plant_num"].as<int>();
 
 
 
     Space space(xlimit, ylimit); //ok
     Doodlebug doodlebug;
     Ant ant;
+    Plant plant;
 
     space.gen_matter(&doodlebug, doodlebug_num); //ok
     space.gen_matter(&ant, ant_num); //ok
+    space.gen_matter(&plant, plant_num); //ok
 
     info.count_num_show();
 
